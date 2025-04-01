@@ -6,35 +6,52 @@ import time
 with open("config.json", "r") as f:
     config = json.load(f)
 
-# Load session cookies
-with open(config["cookie_file"], "r") as f:
-    cookies = json.load(f)
-
+email = config["email"]
+password = config["password"]
 receiver_id = config["receiver_id"]
 message_file = config["message_file"]
 delay_time = config["delay_time"]
 
 def send_messages():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
+        # Launch Google Chrome with a persistent session
+        browser = p.chromium.launch_persistent_context(
+            user_data_dir="chrome_data",  # Saves session for next use
+            channel="chrome",  # Uses Google Chrome
+            headless=True  # Run Chrome in headless mode (no GUI)
+        )
 
-        # Load cookies
-        context.add_cookies([
-            {"name": "c_user", "value": cookies["c_user"], "domain": ".facebook.com", "path": "/"},
-            {"name": "xs", "value": cookies["xs"], "domain": ".facebook.com", "path": "/"}
-        ])
+        page = browser.new_page()
 
-        page = context.new_page()
+        # Go to Messenger login page
+        page.goto("https://www.messenger.com/")
+
+        # Log in
+        page.fill("input[name='email']", email)
+        page.fill("input[name='pass']", password)
+        
+        # Click login button (Ensure correct selector)
+        page.click("button[type='submit']")
+        time.sleep(10)  # Wait for login to complete
+
+        # Go to receiver's chat
         page.goto(f"https://www.messenger.com/t/{receiver_id}")
-
-        # Wait for chat to load
         time.sleep(5)
+
+        # Handle "End-to-End Encrypted Chat" prompt
+        try:
+            if page.is_visible("text=Continue"):
+                page.click("text=Continue")
+                time.sleep(3)
+                print("✅ Clicked on 'Continue'")
+        except:
+            print("✅ No 'Continue' button found, proceeding...")
 
         # Read messages from file
         with open(message_file, "r") as f:
             messages = f.readlines()
 
+        # Send messages in a loop
         while True:
             for msg in messages:
                 page.fill("div[role='textbox']", msg.strip())
