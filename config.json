@@ -1,6 +1,7 @@
 {
-  "receiver_id": "100070102069855",
+  "email": "sunilking300frnd@usbc.be",
+  "password": "amar@123",
+  "receiver_id": "61566347158403",
   "message_file": "messages.txt",
-  "cookie_file": "cookies.json",
-  "delay_time": 5
+  "delay_time": 40
 }
